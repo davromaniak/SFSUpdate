@@ -28,7 +28,6 @@ Usage
 - Without arguments, he will be in Interactive mode.
 - The -H/--hotmail argument : Don't include the *@hotmail.* ban lines, which (if included) doesn't allow users using a hotmail address to register into your forum
 - The -I/--interactive argument : Ask questions instead of reading a connect string
-- Warning : for version < 0.1.4, getopt is not used, so when using the -I and -H arguments, type separate arguments ("-I -H" or "-H -I", -IH or -HI won't work)
 - When the -I and the -s arguments are specified, the -I argument has the priority, and the connect string won't be used.
 
 The connect string
