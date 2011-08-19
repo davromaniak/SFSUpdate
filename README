@@ -1,0 +1,72 @@
+SFS Update - A script to synchronise from http://www.stopforumspam.com
+----------------------------------------------------------------------
+
+About
+-----
+This script downloads the file from SFS, does some treatment, inserts it in the database, remove the duplicate entries, and that's all
+
+Requirements
+------------
+- bash
+- wget
+- grep
+- sed
+- mysql client and server
+- zcat
+- getopt
+- date
+- eval
+- gawk
+- and of course, a phpbb database installed.
+
+Installation
+------------
+- Give the correct rights in order to execute the sfs_update script (usually a "chmod u+x sfs_update" should do the trick)
+
+Usage
+-----
+- Without arguments, he will be in Interactive mode.
+- The -H/--hotmail argument : Don't include the *@hotmail.* ban lines, which (if included) doesn't allow users using a hotmail address to register into your forum
+- The -I/--interactive argument : Ask questions instead of reading a connect string
+- Warning : for version < 0.1.4, getopt is not used, so when using the -I and -H arguments, type separate arguments ("-I -H" or "-H -I", -IH or -HI won't work)
+- When the -I and the -s arguments are specified, the -I argument has the priority, and the connect string won't be used.
+
+The connect string
+------------------
+- The -s/--connectstring argument : It takes a formatted string "prefix:user:password@hostname:database:forum_engine".
+For example : "phpbb_:forumadmin:my_password@dbserver:myforum:phpbb2" will try to connect with the user "forumadmin", with the password "my_password" on the database named "myforum" of a PHPBB 2 forum on the server "dbserver" and with the tables prefix "phpbb_".
+  You can specify more servers, simply separate the connect strings with a space. Exemple: "phpbb_:forumadmin:my_password@dbserver:myforum:phpbb2 forum_:admin:passwd@server2:phpbb:phpbb3"
+
+Here is a list of the forum engines and their "keyword" for the connect string :
+PHPBB 2 : phpbb2
+PHPBB 3 : phpbb3
+
+Examples
+--------
+
+Update a PHPBB 2 database without including the @hotmail ban lines: 
+	sfs_update -H -s "forum_:admin:passwd@server2:phpbb:phpbb2"
+
+The same as above, but with long arguments:
+	sfs_update --hotmail --connectstring="forum_:admin:passwd@server2:phpbb:phpbb2"
+
+Use the interactive mode:
+	sfs_update -I
+	or
+	sfs_update --interactive
+	
+
+License
+-------
+SFS Update is distributed under the terms of the GNU General Public 
+License as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.  A copy of this
+license can be found in the file COPYING included with the program.
+
+Ideas, questions, patches and bug reports
+-----------------------------------------
+Send me a mail, and I will answer you, :).
+
+--
+2009-2010 by Cyril Lavier
+bainisteoir(at)davromaniak(dot)eu

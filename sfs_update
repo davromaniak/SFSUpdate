@@ -1,0 +1,248 @@
+#!/bin/bash
+#
+#       sfs_update
+#
+#       Copyright 2009-2011 Cyril LAVIER <bainisteoir(at)davromaniak(dot)eu>
+#       
+#       This program is free software; you can redistribute it and/or modify
+#       it under the terms of the GNU General Public License as published by
+#       the Free Software Foundation; either version 2 of the License, or
+#       (at your option) any later version.
+#       
+#       This program is distributed in the hope that it will be useful,
+#       but WITHOUT ANY WARRANTY; without even the implied warranty of
+#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#       GNU General Public License for more details.
+#       
+#       You should have received a copy of the GNU General Public License
+#       along with this program; if not, write to the Free Software
+#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#       MA 02110-1301, USA.
+
+usage() {
+	echo "Usage: $0 [OPTIONS]"
+        echo "Updates the banlist and disallow tables of PHPBB forum with the http://www.stopforumspam.com/ banlist"
+	echo ""
+	echo -e " -H, --hotmail\t\tDon't include the *@hotmail.* ban lines, which (if included) doesn't allow users using a hotmail address to register into your forum"
+	echo -e " -I, --interactive\t\tAsk questions instead of reading a connect string"
+	echo -e " -h, --help\t\tDisplays this help"
+	echo -e " -c, --changelog\tDisplays a kind of Changelog"
+	echo -e " -v, --version\t\tDisplays version info"
+	echo -e " -s [connection strings], --connectstring=[connection strings]\t\t Use connect strings instead of the configuration file (see the README file for the format, if the -I option is used, the activated mode is the interactive one)\n"
+}
+
+changelog() {
+	echo "V0.5: ???? ??th 2011 : Complete rewrite to adjust to new stopforumspam banlist format, supports only phpbb2 and 3"
+	echo "V0.3pre: March 24th 2010 : Added support for 6 forum engines, and dropped the configuration file"
+	echo "V0.2: March 6th 2010: Added the PHPBB 3 support"
+	echo "V0.1.4: February 22th 2010: Added the multiserver possibility, the getopt use and the duration print"
+	echo "V0.1.3: February 15th 2010: Added a statistic part and the possibility to use a distant MySQL server (default is localhost)"
+	echo "V0.1.2.1: January 20th 2010: The stopforumspam website now gives a zipped archive, this version supports the zipped file"
+	echo "V0.1.2: August 21th 2009: corrected a regexp in the cleaning of the sql file"
+	echo "V0.1.1: August 10th 2009: drop the grep utilization, using sql queries instead"
+	echo "V0.1: August 8th 2009: First Release"
+	echo "See the CHANGELOG for more information"
+}
+
+oldpwd=$PWD
+
+# Go to a place where I will be able to write some temporary stuff
+cd /tmp/
+
+# Initialize the interaction and the hotmail variables
+interact="1"
+hotmail="0"
+connstr="0"
+
+# Parsing arguments
+set -- `getopt -n$0 -u --longoptions="version changelog help hotmail interactive connectstring:" "vchHIs:" "$@"`
+while [ $# -gt 0 ]; do
+	case "$1" in
+		-v|--version)
+			echo "SFS Update V0.5"
+			echo "Written by Cyril Lavier <bainisteoir(at)davromaniak(dot)eu>"
+			exit 0
+			;;
+		-c|--changelog)
+			changelog
+			exit 0
+			;;
+		-h|--help)
+			usage
+			exit 0
+			;;
+		-H|--hotmail)
+			hotmail=1
+			;;
+		-I|--interactive)
+			interact=1
+			;;
+		-s|--connectstring)
+			interact=0
+			connstr=1
+			connstring=$2
+			shift
+			echo $2 | grep -vq "^-"
+			v=$?
+			while [ $v -eq "0" ]; do
+				connstring=$connstring" "$2
+				shift
+				if [ "x"$2 == "x" ]; then
+					v=1
+				else
+					echo $2 | grep -vq "^-"
+					v=$?
+				fi
+			done
+			shift
+			;;
+		--)
+			break
+			;;
+	esac
+	shift
+done
+
+# initialize system infos (login, password, bdd, prefix)
+if [ $interact -eq "1" ]; then
+	echo "Interactive mode"
+	echo "----------------"
+	echo "System parameters (won't be written in any file, just used by this script)"
+	echo "Forum engine and version (phpbb2, phpbb3, fluxbb1.2, beehive0.9, fudforum3, icebb1.0, mybb1.4)"
+	read forumengine
+	echo "MySQL server hostname or IP address"
+	read dbhost
+	echo "Login of a user which can have insert, create table and drop table rights"
+	read login
+	echo "The password of this user"
+	read password
+	echo "Database's name"
+	read dbname
+	echo "Table prefix (usually \"phpbb_\")"
+	read prefix
+	connstring="${prefix}:${login}:${password}@${dbhost}:${dbname}:${forumengine}"
+fi
+
+globalbegin=`date +%s`
+
+echo "Downloading the files and cleaning them"
+wget -q http://www.davromaniak.eu/sfs_update/listed_ip_30.zip -O - | zcat | grep -v '0.0.0.0' | tr '.' ' ' > list_ip.txt
+wget -q http://www.davromaniak.eu/sfs_update/listed_email_30.zip -O - | zcat  > list_email.txt
+
+for str in $connstring; do
+	localbegin=`date +%s`
+	eval `echo $str | sed -e "s/^\(.*\):\(.*\):\(.*\)@\(.*\):\(.*\):\(.*\)$/prefix=\1;login=\2;password=\3;dbhost=\4;dbname=\5;forumengine=\6/"`
+	
+
+# Writing the post-treatment sql script into a temporary file
+
+case ${forumengine} in
+"phpbb2")
+if [ $hotmail -eq "1" ]; then
+	echo "delete from ${prefix}banlist where ban_email REGEXP \"^.*@hotmail\.(com|net|org|co.uk|de|fr|co.jp|it|tw|at|es)$\";" > sfs_update_post_phpbbgen.sql
+fi
+cat >> sfs_update_post_phpbb2.sql << EOF
+CREATE TABLE ${prefix}banlist_temp AS SELECT DISTINCT ban_userid, ban_ip, ban_email from ${prefix}banlist;
+ALTER TABLE ${prefix}banlist_temp ADD ban_id MEDIUMINT( 8 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST ;
+TRUNCATE ${prefix}banlist;
+INSERT INTO ${prefix}banlist SELECT * from ${prefix}banlist_temp;
+DROP TABLE ${prefix}banlist_temp;
+EOF
+prefix_new=${prefix}
+;;
+"phpbb3")
+experimental="no"
+prefix_new="sfsupdatetmp_"
+if [ $hotmail -eq "1" ]; then
+        echo "delete from ${prefix}banlist where ban_email REGEXP \"^.*@hotmail\.(com|net|org|co.uk|de|fr|co.jp|it|tw|at|es)$\";" > sfs_update_post_phpbbgen.sql
+fi
+cat >> sfs_update_post_phpbb3.sql << EOF
+CREATE TABLE ${prefix}banlist_temp AS SELECT DISTINCT ban_userid, ban_ip, ban_email, ban_start, ban_end, ban_exclude, ban_reason, ban_give_reason from ${prefix}banlist;
+TRUNCATE ${prefix}banlist;
+ALTER TABLE ${prefix}banlist_temp ADD ban_id MEDIUMINT( 8 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST ;
+INSERT INTO ${prefix}banlist SELECT * from ${prefix}banlist_temp;
+DROP TABLE ${prefix}banlist_temp;
+EOF
+;;
+*) 
+echo "Error : wrong forum engine selected, exiting..."
+exit 2
+;;
+esac
+
+
+	echo "SFS Update processing for a ${forumengine} forum on ${dbhost}:${dbname}"
+
+	case $forumengine in
+		phpbb2|phpbb3)
+			# COUNT OF LINES BEFORE SFSUPDATE
+			banlistb=$(echo "select count(*) from ${prefix}banlist" | mysql -s -h "$dbhost" -u "$login" -p"$password" "$dbname")
+		;;
+	esac
+	case $forumengine in
+		"phpbb2")
+			# DOWNLOAD, CLEANS, AND INSERTS INTO THE DATABASE
+			echo "Inserting data into the database"
+			echo "IP addresses"
+			printf "INSERT INTO ${prefix}banlist VALUES ('','','%x%x%x%x','NULL');\n" $(cat list_ip.txt) | mysql -h "$dbhost" -u "$login" -p"$password" "$dbname"
+			echo "Email addresses"
+			sed -e "s/^.*$/INSERT INTO ${prefix}banlist VALUES ('','','','&');/" list_email.txt  | grep -v ",''[0-9a-zA-Z]" | mysql -h "$dbhost" -u "$login" -p"$password" "$dbname"
+		;;
+		"phpbb3")
+			# DOWNLOAD, CLEANS, AND INSERTS INTO THE DATABASE
+			echo "Inserting data into the database"
+			echo "IP addresses"
+			printf "INSERT INTO ${prefix}banlist VALUES ('','','%x%x%x%x','NULL','0','0','0','','');\n" $(cat list_ip.txt) | mysql -h "$dbhost" -u "$login" -p"$password" "$dbname"
+			echo "Email addresses"
+			sed -e "s/^.*$/INSERT INTO ${prefix}banlist VALUES ('','','','&','0','0','0','','');/" list_email.txt  | grep -v ",''[0-9a-zA-Z]" | mysql -h "$dbhost" -u "$login" -p"$password" "$dbname"
+		;;
+	esac
+			echo "Post-Treatment"
+
+	
+	case $forumengine in
+		"phpbb2")
+			mysql -h "$dbhost" -u $login -p$password $dbname < sfs_update_post_phpbb2.sql
+			rm sfs_update_post_phpbb2.sql
+			mysql -h "$dbhost" -u $login -p$password $dbname < sfs_update_post_phpbbgen.sql
+			rm sfs_update_post_phpbbgen.sql
+			
+			# COUNT OF LINES AFTER SFSUPDATE
+			banlista=$(echo "select count(*) from ${prefix}banlist" | mysql -s -h "$dbhost" -u "$login" -p"$password" "$dbname")
+
+			#echo "$((disallowa-disallowb)) disallow rows added"
+			echo "$((banlista-banlistb)) banlist rows added"
+			
+			# UPDATING THE "NEXT AUTOINDEX" FIELD ON BANLIST AND DISALLOW TABLES
+			banlistmaxid=$(echo "select max(ban_id)+1 from ${prefix}banlist" | mysql -s -h "$dbhost" -u "$login" -p"$password" "$dbname")
+			echo "ALTER TABLE ${prefix}banlist AUTO_INCREMENT=${banlistmaxid}" | mysql -s -h "$dbhost" -u "$login" -p"$password" "$dbname"
+		;;
+		"phpbb3")
+			mysql -h "$dbhost" -u $login -p$password $dbname < sfs_update_post_phpbb3.sql
+			rm sfs_update_post_phpbb3.sql
+			mysql -h "$dbhost" -u $login -p$password $dbname < sfs_update_post_phpbbgen.sql
+			rm sfs_update_post_phpbbgen.sql
+			
+			# COUNT OF LINES AFTER SFSUPDATE
+			banlista=$(echo "select count(*) from ${prefix}banlist" | mysql -s -h "$dbhost" -u "$login" -p"$password" "$dbname")
+
+			echo "$((banlista-banlistb)) banlist rows added"
+
+			# UPDATING THE "NEXT AUTOINDEX" FIELD ON BANLIST AND DISALLOW TABLES
+			banlistmaxid=$(echo "select max(ban_id)+1 from ${prefix}banlist" | mysql -s -h "$dbhost" -u "$login" -p"$password" "$dbname")
+			echo "ALTER TABLE ${prefix}banlist AUTO_INCREMENT=${banlistmaxid}" | mysql -s -h "$dbhost" -u "$login" -p"$password" "$dbname"
+		;;
+	esac
+	localend=`date +%s`
+	echo "Duration for ${dbhost}:${dbname} : $((localend-localbegin)) s"
+
+done
+
+echo "Removing the temp files"
+rm /tmp/list_email.txt /tmp/list_ip.txt
+
+globalend=`date +%s`
+echo "Global duration : $((globalend-globalbegin)) s"
+
+# COME BACK WHERE WE WERE
+cd $oldpwd

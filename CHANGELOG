@@ -1,0 +1,66 @@
+2011-08-**  Cyril Lavier  <bainisteoir(at)davromaniak(dot)eu>
+ * New Release: 0.5
+ * Complete rewrite because of the format change from stopforumspam.com
+ * Due to the format change, banned usernames can't be added anymore
+ * Only kept (for the moment) phpBB2 and phpBB3 support.
+
+2010-03-24  Cyril Lavier  <bainisteoir(at)davromaniak(dot)eu>
+
+ * New Release: V0.3pre.
+ * Added the Fluxbb 1.2 support
+ * Added the Beehive Forum support
+ * Added the FUDforum support
+ * Added the IceBB support
+ * Added the MyBB support
+ * Dropped the configuration file support
+ * bbPress support : not possible, no ban management included
+ * kusaba support : not possible, kusaba is not developed anymore
+ * MercuryBoard support : not possible, MercuryBoard is not developed anymore
+ * miniBB support : not possible, ban management only contains IP ban, no username or email address ban management at this time
+
+2010-03-06  Cyril Lavier  <bainisteoir(at)davromaniak(dot)eu>
+
+ * New Release: V0.2.
+ * Bug fix : the "Next Autoindex" of every table was not correct, fixing it.
+ * Support for PHPBB 3.x forums
+ * File download from www.davromaniak.eu instead of www.stopforumspam.com (the file is synced once a day, at 5:10am GMT)
+
+
+2010-02-22  Cyril Lavier  <bainisteoir(at)davromaniak(dot)eu>
+
+ * New Release: V0.1.4.
+ * Using getopt for parsing command line options
+ * MySQL server credentials can be given using a unique formated string
+ * Ability to use multiple MySQL servers
+ * Statistic part : added the time used for the processing
+ * Fixed a bug about the prefix value which was not actually used
+ * Download and treat the phpbb_bans.zip file only one time for the whole script execution
+
+2010-02-15  Cyril Lavier  <bainisteoir(at)davromaniak(dot)eu>
+
+ * New Release: V0.1.3.
+ * Added a statistic part
+ * Now, you can choose the hostname/IP address of the MySQL server
+
+
+2010-01-20  Cyril Lavier  <bainisteoir(at)davromaniak(dot)eu>
+
+ * New Release: V0.1.2.1.
+ * Added support for the zipped file provided by stopforumspam website
+
+
+2009-08-21  Cyril Lavier  <bainisteoir(at)davromaniak(dot)eu>
+
+ * New Release: V0.1.2.
+ * Corrected a regexp in the cleaning of the sql file
+
+
+2009-08-10  Cyril Lavier  <bainisteoir(at)davromaniak(dot)eu>
+
+ * New Release: V0.1.1.
+ * Drop the grep utilization, using sql queries instead
+
+
+2009-08-08  Cyril Lavier  <bainisteoir(at)davromaniak(dot)eu>
+
+ * Initial Release: V0.1.
