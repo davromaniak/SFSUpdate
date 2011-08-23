@@ -108,7 +108,7 @@ if [ $interact -eq "1" ]; then
 	echo "Interactive mode"
 	echo "----------------"
 	echo "System parameters (won't be written in any file, just used by this script)"
-	echo "Forum engine and version (phpbb2, phpbb3, fluxbb1.2, beehive0.9, fudforum3, icebb1.0, mybb1.4)"
+	echo "Forum engine and version (phpbb2, phpbb3)"
 	read forumengine
 	echo "MySQL server hostname or IP address"
 	read dbhost
