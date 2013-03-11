@@ -126,8 +126,8 @@ fi
 globalbegin=`date +%s`
 
 echo "Downloading the files and cleaning them"
-wget -q http://www.davromaniak.eu/sfs_update/listed_ip_30.zip -O - | zcat | grep -v '0.0.0.0' | tr '.' ' ' > list_ip.txt
-wget -q http://www.davromaniak.eu/sfs_update/listed_email_30.zip -O - | zcat  > list_email.txt
+wget -4 -q http://www.davromaniak.eu/sfs_update/listed_ip_30.zip -O - | zcat | grep -v '0.0.0.0' | tr '.' ' ' > list_ip.txt
+wget -4 -q http://www.davromaniak.eu/sfs_update/listed_email_30.zip -O - | zcat  > list_email.txt
 
 for str in $connstring; do
 	localbegin=`date +%s`
